@@ -24,14 +24,18 @@ int get_drm_device(int* out, char* node) {
   return 0;
 }
 
-int get_connector(int* fd, drmModeModeInfo mode_info, uint32_t* connector_id) {
+int get_connector(int* fd, drmModeModeInfo* mode_info, uint32_t* connector_id, uint32_t* crtc_id) {
+  int encoder_id;
   drmModeResPtr res= drmModeGetResources (*fd);
   for(int i=0; i<res->count_connectors; i++) {
     printf("got connector id %d\n", res->connectors[i]);
     drmModeConnectorPtr connection = drmModeGetConnector (*fd, res->connectors[i]);
     if (connection->connection == DRM_MODE_CONNECTED) {
-      mode_info = connection->modes[0];
+      *mode_info = connection->modes[0];
       *connector_id = connection->connector_id;
+      encoder_id = connection->encoder_id;
+      drmModeEncoder* enc = drmModeGetEncoder (*fd, encoder_id);
+      *crtc_id = enc->crtc_id;
       break;
     }
     drmModeFreeConnector (connection);
@@ -42,11 +46,13 @@ int get_connector(int* fd, drmModeModeInfo mode_info, uint32_t* connector_id) {
 int main() {
   uint32_t connector_id;
   drmModeModeInfo mode_info;
+  uint32_t crtc_id;
   int fd;
   char* node = "/dev/dri/card1";
   get_drm_device (&fd, node);
   printf("got the drm device at %d\n", fd);
-  get_connector (&fd, mode_info, &connector_id);
-  printf("decided on the connector id%d\n",connector_id );
+  get_connector (&fd, &mode_info, &connector_id, &crtc_id);
+  printf("decided on the connector id%d\n",connector_id);
+  printf("decided on the crtc id%d\n",crtc_id);
 }
 
