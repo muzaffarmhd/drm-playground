@@ -24,10 +24,18 @@ int get_drm_device(int* out, char* node) {
   return 0;
 }
 
+int get_connector(int* fd) {
+  drmModeResPtr res= drmModeGetResources (*fd);
+  for(int i=0; i<res->count_connectors; i++) {
+    printf("got connector id %d\n", res->connectors[i]);
+  }
+}
+
 int main() {
   int fd;
   char* node = "/dev/dri/card1";
   get_drm_device (&fd, node);
   printf("got the drm device at %d\n", fd);
+  get_connector (&fd);
 }
 
