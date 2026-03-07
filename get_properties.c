@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "unistd.h"
 
 struct display_limits {
@@ -112,10 +113,34 @@ int setup_ccp(struct display_config *config, int device_fd) {
 int main() {
     int device_fd;
     struct display_config config;
+    struct drm_mode_create_dumb creq = {0};
+    struct drm_mode_map_dumb mreq = {0};
     setup_device("/dev/dri/card1", &device_fd);
     setup_ccp(&config, device_fd);
+    creq.width = config.mode.hdisplay;
+    creq.height = config.mode.vdisplay;
+    creq.bpp = 32;
+
+    if (drmIoctl(device_fd, DRM_IOCTL_MODE_CREATE_DUMB, &creq) < 0) {
+        fprintf(stderr, "Failed to create dumb buffer");
+        return -errno;
+    }
+
+    mreq.handle = creq.handle;
+
+    if (drmIoctl(device_fd, DRM_IOCTL_MODE_MAP_DUMB, &mreq) < 0) {
+        fprintf(stderr, "Failed to map dumb buffer");
+        return -errno;
+    }
+
+    uint32_t* map = mmap(0, creq.size, PROT_READ | PROT_WRITE, MAP_SHARED, device_fd, mreq.offset);
+    if (map == MAP_FAILED) {
+        perror("mmap failed");
+        return -errno;
+    }
+
     // if (!config.connector_id || !config.crtc_id || !config.plane_id) return 0;
-    printf("connector_id: %d, crtc_id: %d, plane_id: %d", config.connector_id, config.crtc_id, config.plane_id);
+    printf("connector_id: %d, crtc_id: %d, plane_id: %d, w: %d, h: %d", config.connector_id, config.crtc_id, config.plane_id, config.mode.hdisplay, config.mode.vdisplay);
 }
 
 
