@@ -1,5 +1,8 @@
 project('drm-playground', 'c')
 
-deps=[dependency('gobject-2.0')]
+deps=[
+    dependency('gobject-2.0'),
+    dependency('libdrm'),
+]
 
-executable('run-drm', 'main.c', 'drm-play.c', dependencies: deps)
+executable('run-drm', 'get_properties.c', dependencies: deps)

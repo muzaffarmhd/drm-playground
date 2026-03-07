@@ -3,7 +3,7 @@
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 #include <errno.h>
-#include "stdio.h"
+#include <stdio.h>
 #include "unistd.h"
 
 int get_drm_device(int* out, char* node) {
