@@ -139,6 +139,21 @@ int main() {
         return -errno;
     }
 
+    if (drmModeAddFB(device_fd, config.mode.hdisplay, config.mode.vdisplay, 24, 32, creq.pitch, creq.handle, &config.fb_id) < 0) {
+        perror("can't create fb id");
+        return -errno;
+    }
+
+    for (uint32_t y=0; y<config.mode.vdisplay; y++) {
+        for (uint32_t x=0; x<config.mode.hdisplay; x++) {
+            uint32_t offset = y * (creq.pitch / 4) + x;
+            if ((x+y) % 2 == 0) {
+                map[offset] = 0x000000FF;
+            } else {
+                map[offset] = 0x0000FF00;
+            }
+        }
+    }
     // if (!config.connector_id || !config.crtc_id || !config.plane_id) return 0;
     printf("connector_id: %d, crtc_id: %d, plane_id: %d, w: %d, h: %d", config.connector_id, config.crtc_id, config.plane_id, config.mode.hdisplay, config.mode.vdisplay);
 }
