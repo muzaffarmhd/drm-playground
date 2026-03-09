@@ -8,6 +8,8 @@
 #include <sys/mman.h>
 #include "unistd.h"
 
+#define BLOCK_SIZE 50
+
 struct display_limits {
     uint32_t height;
     uint32_t width;
@@ -116,6 +118,10 @@ int main() {
     struct drm_mode_create_dumb creq = {0};
     struct drm_mode_map_dumb mreq = {0};
     setup_device("/dev/dri/card1", &device_fd);
+    // if (drmSetMaster(device_fd) < 0) {
+    //     fprintf(stderr, "Failed to acquire DRM master: %s\n", strerror(errno));
+    //     return -errno;
+    // }
     setup_ccp(&config, device_fd);
     creq.width = config.mode.hdisplay;
     creq.height = config.mode.vdisplay;
@@ -147,13 +153,23 @@ int main() {
     for (uint32_t y=0; y<config.mode.vdisplay; y++) {
         for (uint32_t x=0; x<config.mode.hdisplay; x++) {
             uint32_t offset = y * (creq.pitch / 4) + x;
-            if ((x+y) % 2 == 0) {
-                map[offset] = 0x000000FF;
+            uint32_t block_x = x/BLOCK_SIZE;
+            uint32_t block_y = y/BLOCK_SIZE;
+            if ((block_x+block_y) % 2 == 0) {
+                map[offset] = 0x00FF0000;
             } else {
                 map[offset] = 0x0000FF00;
             }
         }
     }
+
+    if (drmModeSetCrtc(device_fd, config.crtc_id, config.fb_id, 0, 0, &config.connector_id, 1, &config.mode) < 0) {
+        fprintf(stderr, "failed to set crtc: %s", strerror(errno));
+        return -errno;
+    }
+
+    sleep(5);
+    // drmDropMaster(device_fd);
     // if (!config.connector_id || !config.crtc_id || !config.plane_id) return 0;
     printf("connector_id: %d, crtc_id: %d, plane_id: %d, w: %d, h: %d", config.connector_id, config.crtc_id, config.plane_id, config.mode.hdisplay, config.mode.vdisplay);
 }
